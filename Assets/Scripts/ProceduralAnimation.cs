@@ -4,37 +4,7 @@ using UnityEngine.Animations.Rigging;
 using UnityEngine;
 
 public class ProceduralAnimation : MonoBehaviour
-{
-    //Public variables
-    public MovementController movementController;
-    public LayerMask groundLayer;
-    public GameObject body, raysGameobject;
-    public float stepDistance = 10f;
-    public float stepMaxHeight = 4.5f;
-    public float timeToTakeStep_ms = 320f;
-    public float StepSpeed_ms = 1000f;
-    public float stepFrameTime = 1/60f;
-
-    public float[] curveData; 
-
-    [Header("Body rotation and position adjust ratio")]
-    public float AdjustRatioPerTick = 1 / 10.0f;
-
-    [Header("Step Curves")]
-    [SerializeField] private AnimationCurve speedCurve;
-    [SerializeField] private AnimationCurve heightCurve;
-
-    //Private Variables
-    private Transform [] ikLegs, rays;
-    private Leg [] legs;
-    private float bodyHeightBase = 10.85f;
-    private Animator ch_controller;
-    private TrailRenderer _trail;
-    private float ikPassOver = 0.2f;   
-    private int movingIndex, nLegs;
-    private int[] firstSetLegs, secondSetLegs;
-    private int stepIndex = 0;
-
+{    
     static private Keyframe[] DEFAULT_SPEED_STEP = {new Keyframe(0f, 0f), new Keyframe(1f, 1f)};
     static private Keyframe[] DEFAULT_HEIGHT_STEP = {new Keyframe(0f, 0f), new Keyframe(0.5f, 1f), new Keyframe(1f, 0f)};
 
@@ -43,11 +13,46 @@ public class ProceduralAnimation : MonoBehaviour
 
     static private Keyframe[] STEALTH_SPEED_STEP = {new Keyframe(0f, 0f), new Keyframe(0.32f, 0.14f), new Keyframe(0.672f, 0.89f), new Keyframe(1f, 1f)};
     static private Keyframe[] STEALTH_HEIGHT_STEP = {new Keyframe(0f, 0f), new Keyframe(0.19f, 1.4f), new Keyframe(1f, 0f)};
+    
 
+    //Public variables
+    public GameObject legPrefab;
+    public Controller movementController;
+    public LayerMask groundLayer;
+    public GameObject body, raysGameobject;
+    public Transform[] spawnLegsPoints;
+    public float stepDistance = 10f;
+    public float stepMaxHeight = 4.5f;
+    public float timeToTakeStep_ms = 320f;
+    public float StepSpeed_ms = 1000f;
+    public float stepFrameTime = 1/60f;
+
+    [Header("Body rotation and position adjust ratio")]
+    public float AdjustRatioPerTick = 1 / 10.0f;
+
+    [Header("Step Curves")]
+    public AnimationCurve speedCurve;
+    public AnimationCurve heightCurve;
+    [HideInInspector] public string movementVariant;
+    [HideInInspector] public int numberOfLegs;
+    [HideInInspector] public int nLegs;
+
+    //Private Variables
+    private Keyframe[] myCycle_speed_step, myCycle_height_step;
+    private Transform [] ikLegs, rays;
+    private Leg [] legs;
+    private float bodyHeightBase = 10.9f;
+    private Animator ch_controller;
+    [HideInInspector] public TrailRenderer _trail;
+    private float ikPassOver = 0.2f;   
+    private int movingIndex;
+    private int[] firstSetLegs, secondSetLegs;
+    private int stepIndex = 0;
 
     // Start is called before the first frame update
     void Start()
     {   
+        movementVariant = "variant1";
         f_InitializeLegs();
         ch_controller = transform.GetComponent<Animator>();
         StartCoroutine(bodyProceduraltransform());
@@ -56,50 +61,115 @@ public class ProceduralAnimation : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(body.gameObject.GetComponent<MovementController>().pause) return;
+
+        if (Input.GetKeyDown(KeyCode.Y)) f_setNumberOfLegs(true);
+        if (Input.GetKeyDown(KeyCode.H)) f_setNumberOfLegs(false);
+        if (Input.GetKeyDown(KeyCode.L)) {
+            f_InitializeLegs();
+            movementVariant = "variant1";
+        }
+        if(body.gameObject.GetComponent<Controller>().pause) return;
         if (Input.GetKeyDown(KeyCode.T)) _trail.enabled = !_trail.enabled;
 
-        if (Input.GetKeyDown(KeyCode.K)) {
-            Keyframe[] keys = new Keyframe[curveData.Length];
-            float frame = 0;
-            float betweenFrames = 1f / (curveData.Length - 1);
-            print(betweenFrames);
-            for (int i = 0; i < keys.Length; i++)
-            {
-                keys[i] = new Keyframe(frame, curveData[i]);
-                frame += betweenFrames;
-                //if (i == keys.Length -1) frame = 1;
-                //else frame += betweenFrames;
-            }
-            heightCurve = new AnimationCurve(keys);
-        }
-        f_RestingPosition();
+        if(!movementVariant.Equals("stop"))f_RestingPosition();
     }
 
     void FixedUpdate() {
-        if(body.gameObject.GetComponent<MovementController>().pause) return;
-       f_MovingLegsDual();
+        if(body.gameObject.GetComponent<Controller>().pause) return;
+        switch(movementVariant){
+            case "variant1": f_MovingLegsVariant1(); break;
+            case "variant2": f_MovingLegsVariant2(); break;
+            case "variant3": f_MovingLegsVariant3(); break;
+            case "variant4": f_MovingLegsVariant4(); break;
+            default: break;
+        }
+        
     }
+    public void f_reInitializeLegs(){
+        f_InitializeLegs();
+        movementVariant = "variant1";
+    }
+
+    public int f_setNumberOfLegs(bool add){
+        numberOfLegs = -1;
+        if(add && nLegs < 8) {
+            numberOfLegs = nLegs + 2;
+        }
+        else if(!add && nLegs > 2){
+            numberOfLegs = nLegs - 2;
+        }
+
+        if(numberOfLegs == -1) return numberOfLegs;
+
+        f_SetLegs(numberOfLegs);
+        return numberOfLegs;
+    }
+
+    private void f_SetLegs(int numberOfLegs){
+        string aux = movementVariant;
+        movementVariant = "stop";
+        
+        RigBuilder[] old_legs_points = GetComponentsInChildren<RigBuilder>();
+        GameObject[] old_legs = new GameObject[nLegs];
+
+        for (int i = 0; i < old_legs_points.Length; i++)
+        {
+            GameObject.Destroy(old_legs_points[i].gameObject);
+        }
+
+        for (int i = 0; i < spawnLegsPoints.Length; i++)
+        {
+            print(spawnLegsPoints[i].gameObject.name);
+        }
+
+        int j = 0;
+        GameObject auxLeg;
+        for (int i = 0; i < numberOfLegs; i++)
+        {
+            if(i > numberOfLegs/2 - 1){
+                auxLeg = Instantiate(legPrefab, spawnLegsPoints[j + 8/2]);
+                j++;
+                //auxLeg.transform.SetParent(spawnLegsPoints[j + 1 + 8/2], false);
+            }
+            else{
+                auxLeg = Instantiate(legPrefab, spawnLegsPoints[i]);
+                //auxLeg.transform.SetParent(spawnLegsPoints[i + 1], false);
+            }
+        }
+        Invoke("f_reInitializeLegs", 0.2f);
+    }
+
     private void f_InitializeLegs(){
+        //Obtain Components via code
         Transform[] raysInTake = raysGameobject.GetComponentsInChildren<Transform>();
         TwoBoneIKConstraint[] iks = GetComponentsInChildren<TwoBoneIKConstraint>();
         nLegs = iks.Length;
         ikLegs = new Transform[nLegs];
         rays = new Transform[nLegs];
+        int x = 0;
+        print(nLegs);
         for (int i = 0; i < nLegs; i++)
         {
             ikLegs[i] = iks[i].transform;
-            rays[i] = raysInTake[i + 1];
+            if(i > nLegs/2 - 1){
+                rays[i] = raysInTake[x + 1 + 8/2];
+                x++;
+            }
+            else{
+                rays[i] = raysInTake[i + 1]; // The zero position belongs to the perent, so we must omit it
+            }
+            
         }
         ikLegs[0].gameObject.AddComponent<TrailRenderer>();
         _trail = ikLegs[0].gameObject.GetComponent<TrailRenderer>();
         _trail.enabled = false;
 
+        //Initialize Data
         legs = new Leg[nLegs];
         movingIndex = -1;
+
         firstSetLegs = new int[nLegs/2];
         secondSetLegs = new int[nLegs/2];
-
         for (int i = 0; i < nLegs/2; i++)
         {
             firstSetLegs[i] = i%2 == 0 ? i : nLegs/2 + i;
@@ -127,32 +197,31 @@ public class ProceduralAnimation : MonoBehaviour
     }
 
     public void f_ChoosePreset(string preset) {
-        Keyframe[] speedCurveAux = DEFAULT_SPEED_STEP;
-        Keyframe[] heightCurveAux = DEFAULT_HEIGHT_STEP;
+        Keyframe[] speedCurveKeyframes = new Keyframe[0];
+        Keyframe[] heightCurveKeyframes = new Keyframe[0];
        switch (preset){
-           case "Default": print("Default Clicked");
-                speedCurveAux = DEFAULT_SPEED_STEP;
-                heightCurveAux = DEFAULT_HEIGHT_STEP;
+           case "Default":
+                speedCurveKeyframes = DEFAULT_SPEED_STEP;
+                heightCurveKeyframes = DEFAULT_HEIGHT_STEP;
                 break;
-           case "Stomp": print("Stomp Clicked"); 
-                speedCurveAux = STOMP_SPEED_STEP;
-                heightCurveAux = STOMP_HEIGHT_STEP;
+           case "Stomp": 
+                speedCurveKeyframes = STOMP_SPEED_STEP;
+                heightCurveKeyframes = STOMP_HEIGHT_STEP;
                 break;
-           case "Stealth": print("Stealth Clicked");
-                speedCurveAux = STEALTH_SPEED_STEP;
-                heightCurveAux = STEALTH_HEIGHT_STEP;
+           case "Stealth":
+                speedCurveKeyframes = STEALTH_SPEED_STEP;
+                heightCurveKeyframes = STEALTH_HEIGHT_STEP;
                 break;
-           case "Own": print("Own Clicked");
-                speedCurveAux = DEFAULT_SPEED_STEP;
-                heightCurveAux = DEFAULT_HEIGHT_STEP;
+           case "Own":
+                speedCurveKeyframes = myCycle_speed_step;
+                heightCurveKeyframes = myCycle_height_step;
                 break;
            default: 
                 break;
        }
 
-        speedCurve = new AnimationCurve(speedCurveAux);
-        heightCurve = new AnimationCurve(heightCurveAux);
-       
+        speedCurve = speedCurveKeyframes.Length <= 0? speedCurve : new AnimationCurve(speedCurveKeyframes);
+        heightCurve = heightCurveKeyframes.Length <= 0? heightCurve : new AnimationCurve(heightCurveKeyframes);
     }
 
     private void f_RestingPosition() {        
@@ -200,7 +269,52 @@ public class ProceduralAnimation : MonoBehaviour
         legs[index].isMoving = false;
     }
 
-    private void f_MovingLegsDual(){ // One set at a time
+    private IEnumerator bodyProceduraltransform(){
+        while (true){
+            if(!movementVariant.Equals("stop")){ 
+
+                Vector3 avgIkPositon = Vector3.zero;
+                Vector3 bodyVecUp = Vector3.zero;
+
+                for (int i = 0; i < nLegs; i++)
+                {
+                    avgIkPositon += ikLegs[i].position;
+                    bodyVecUp += legs[i].lastPositionNormal + legs[i].rayHitNormal;
+                }
+
+                RaycastHit hit;
+                if (Physics.Raycast(body.transform.position, body.transform.up * -1, out hit, Mathf.Infinity, groundLayer))
+                {
+                    bodyVecUp += hit.normal;
+                }
+
+                avgIkPositon = avgIkPositon / nLegs;
+                bodyVecUp.Normalize();
+
+                Vector3 bodyPos = avgIkPositon + bodyVecUp * bodyHeightBase;
+                body.transform.position = Vector3.Lerp(body.transform.position, new Vector3(body.transform.position.x,bodyPos.y,body.transform.position.z), AdjustRatioPerTick);
+
+                Vector3 bodyRight = Vector3.Cross(bodyVecUp, body.transform.forward);
+                Vector3 bodyForward = Vector3.Cross(bodyRight, bodyVecUp);
+
+                Quaternion bodyRotation = Quaternion.LookRotation(bodyForward, bodyVecUp);
+                body.transform.rotation = Quaternion.Slerp(body.transform.rotation, bodyRotation, AdjustRatioPerTick);
+
+            }
+        
+            yield return new WaitForFixedUpdate();
+        }
+    }
+
+    public void f_setCurves(Keyframe[] speed, Keyframe[] height){
+        myCycle_speed_step = speed;
+        myCycle_height_step = height;
+    }
+
+/// <summary>
+/// Move legs divided by sets
+/// </summary>
+    private void f_MovingLegsVariant1(){ // One set at a time
         movingIndex = -1;
         stepIndex = stepIndex == 0 ? nLegs/2 : 0;
 
@@ -256,72 +370,10 @@ public class ProceduralAnimation : MonoBehaviour
         }
     }
 
-    private IEnumerator bodyProceduraltransform(){
-        while (true){
-            Vector3 avgIkPositon = Vector3.zero;
-            Vector3 bodyVecUp = Vector3.zero;
-
-            for (int i = 0; i < nLegs; i++)
-            {
-                avgIkPositon += ikLegs[i].position;
-                bodyVecUp += legs[i].lastPositionNormal + legs[i].rayHitNormal;
-            }
-
-            RaycastHit hit;
-            if (Physics.Raycast(body.transform.position, body.transform.up * -1, out hit, Mathf.Infinity))
-            {
-                bodyVecUp += hit.normal;
-            }
-
-            avgIkPositon = avgIkPositon / nLegs;
-            bodyVecUp.Normalize();
-
-            Vector3 bodyPos = avgIkPositon + bodyVecUp * bodyHeightBase;
-            body.transform.position = Vector3.Lerp(body.transform.position, new Vector3(body.transform.position.x,bodyPos.y,body.transform.position.z), AdjustRatioPerTick);
-
-            Vector3 bodyRight = Vector3.Cross(bodyVecUp, body.transform.forward);
-            Vector3 bodyForward = Vector3.Cross(bodyRight, bodyVecUp);
-
-            Quaternion bodyRotation = Quaternion.LookRotation(bodyForward, bodyVecUp);
-            body.transform.rotation = Quaternion.Slerp(body.transform.rotation, bodyRotation, AdjustRatioPerTick);
-
-            yield return new WaitForFixedUpdate();
-        }
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        for (int i = 0; i < nLegs; ++i)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(ikLegs[i].position, 0.05f);
-            Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(transform.TransformPoint(legs[i].lastPosition), stepDistance);
-        }
-    }
-
-/*
-
-
-    IEnumerator Step(int index, Vector3 target){
-        legs[index].isMoving = true;
-
-        Vector3 startPos = legs[index].lastPosition;
-        float elapsedTime = 0f;
-
-        while(elapsedTime < timeToTakeStep_ms){
-            ikLegs[index].position = Vector3.Lerp(startPos, target, elapsedTime / timeToTakeStep_ms);
-            ikLegs[index].position += body.transform.up * Mathf.Sin(elapsedTime / timeToTakeStep_ms * Mathf.PI) * stepMaxHeight;
-            elapsedTime += Time.fixedDeltaTime * StepSpeed_ms;
-            yield return null;
-        }
-        ikLegs[index].position = target;
-        legs[index].lastPosition = ikLegs[index].position;
-        legs[index].isMoving = false;
-        f_BodyHeight();
-    }
-
-    private void f_MovingLegsHomogeneus(){ // First One set, the the other
+    /// <summary>
+    /// Move all legs but only if the symmetrical leg is grounded
+    /// </summary>
+    private void f_MovingLegsVariant2(){ // First One set, the the other
         movingIndex = -1;
         for (int i = 0; i < nLegs/2; i++)
         {
@@ -356,7 +408,11 @@ public class ProceduralAnimation : MonoBehaviour
             }
         }
     }
-    private void f_MovingLegs(){ // Index order
+
+    /// <summary>
+    /// Move legs only if all other legs are grounded
+    /// </summary>
+    private void f_MovingLegsVariant3(){ // Index order
         movingIndex = -1;
         for (int i = 0; i < nLegs; i++)
         {
@@ -372,32 +428,74 @@ public class ProceduralAnimation : MonoBehaviour
             }
         }
         if(movingIndex != -1 && !legs[movingIndex].isMoving){
-            // bool perfomStep = true;
-            // print(legs[movingIndex].set);
-            // for (int j = 0; j < nLegs/2; j++)
-            // {
-            //     if(legs[movingIndex].set == SET.First){
-            //         if(legs[secondSetLegs[j]].isMoving){
-            //             perfomStep = false;
-            //             break;
-            //         }
-            //     }
-            //     else{
-            //         if(legs[firstSetLegs[j]].isMoving){
-            //             perfomStep = false;
-            //             break;
-            //         }
-            //     }
-            // }
-            // if(perfomStep){
-            //     StartCoroutine(Step(movingIndex, legs[movingIndex].targetPosition));
-            // } 
+            bool performStep = true;
 
-            int idxAnalogLeg = movingIndex - nLegs/2 < 0 ? nLegs - Mathf.Abs(movingIndex - nLegs/2) : movingIndex - nLegs/2;
-            if(!legs[idxAnalogLeg].isMoving) {
+            for (int j = 0; j < legs.Length; j++)
+            {
+                if(legs[j].isMoving) {
+                    performStep = false;
+
+                }
+            }
+            
+            if(performStep) {
                 StartCoroutine(Step(movingIndex, legs[movingIndex].targetPosition));
             }
         }
+    }
+
+    /// <summary>
+    /// Move legs always if they are too far away of the resting point
+    /// </summary>
+    private void f_MovingLegsVariant4(){ // Index order
+        movingIndex = -1;
+        for (int i = 0; i < nLegs; i++)
+        {
+            RaycastHit hit;
+            if (Physics.Raycast(rays[i].position, rays[i].TransformDirection(-Vector3.forward), out hit, Mathf.Infinity, groundLayer)){
+                // Debug.Log("Ground hitted for Raycast " + i);
+                float distance = Vector3.Distance(hit.point, ikLegs[i].transform.position);
+                legs[i].rayHitPosition = hit.point;
+                if(distance > stepDistance) {
+                    legs[i].targetPosition = hit.point;
+                    movingIndex = i;
+                }
+            }
+        }
+        if(movingIndex != -1 && !legs[movingIndex].isMoving){
+            StartCoroutine(Step(movingIndex, legs[movingIndex].targetPosition));
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        for (int i = 0; i < nLegs; ++i)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(ikLegs[i].position, 0.05f);
+            Gizmos.color = Color.green;
+            Gizmos.DrawWireSphere(transform.TransformPoint(legs[i].lastPosition), stepDistance);
+
+        }
+    }
+
+/*
+    IEnumerator Step(int index, Vector3 target){
+        legs[index].isMoving = true;
+
+        Vector3 startPos = legs[index].lastPosition;
+        float elapsedTime = 0f;
+
+        while(elapsedTime < timeToTakeStep_ms){
+            ikLegs[index].position = Vector3.Lerp(startPos, target, elapsedTime / timeToTakeStep_ms);
+            ikLegs[index].position += body.transform.up * Mathf.Sin(elapsedTime / timeToTakeStep_ms * Mathf.PI) * stepMaxHeight;
+            elapsedTime += Time.fixedDeltaTime * StepSpeed_ms;
+            yield return null;
+        }
+        ikLegs[index].position = target;
+        legs[index].lastPosition = ikLegs[index].position;
+        legs[index].isMoving = false;
+        f_BodyHeight();
     }
  */
 }
