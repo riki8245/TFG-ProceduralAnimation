@@ -53,7 +53,7 @@ public class ProceduralAnimation : MonoBehaviour
     void Start()
     {   
         movementVariant = "variant1";
-        f_InitializeLegs();
+        f_SetLegs(8);
         ch_controller = transform.GetComponent<Animator>();
         StartCoroutine(bodyProceduraltransform());
     }
