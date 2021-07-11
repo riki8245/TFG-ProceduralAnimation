@@ -13,6 +13,11 @@ public class ProceduralAnimation : MonoBehaviour
 
     static private Keyframe[] STEALTH_SPEED_STEP = {new Keyframe(0f, 0f), new Keyframe(0.32f, 0.14f), new Keyframe(0.672f, 0.89f), new Keyframe(1f, 1f)};
     static private Keyframe[] STEALTH_HEIGHT_STEP = {new Keyframe(0f, 0f), new Keyframe(0.19f, 1.4f), new Keyframe(1f, 0f)};
+
+    static private float _stepTimeVar1 = 320f;
+    static private float _stepTimeVar2 = 170f;
+    static private float _stepTimeVar3 = 120f;
+    static private float _stepTimeVar4 = 250f;
     
 
     //Public variables
@@ -21,8 +26,8 @@ public class ProceduralAnimation : MonoBehaviour
     public LayerMask groundLayer;
     public GameObject body, raysGameobject;
     public Transform[] spawnLegsPoints;
-    public float stepDistance = 10f;
-    public float stepMaxHeight = 4.5f;
+    public float stepDistance = 9f;
+    public float stepMaxHeight = 5f;
     public float timeToTakeStep_ms = 320f;
     public float StepSpeed_ms = 1000f;
     public float stepFrameTime = 1/60f;
@@ -49,6 +54,12 @@ public class ProceduralAnimation : MonoBehaviour
     private int[] firstSetLegs, secondSetLegs;
     private int stepIndex = 0;
 
+    
+    private Vector3 bodyPos;
+    private Vector3 bodyVecUp;
+    private Vector3 bodyForward;
+    private Vector3 bodyRight;
+
     // Start is called before the first frame update
     void Start()
     {   
@@ -61,29 +72,18 @@ public class ProceduralAnimation : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-        if (Input.GetKeyDown(KeyCode.Y)) f_setNumberOfLegs(true);
-        if (Input.GetKeyDown(KeyCode.H)) f_setNumberOfLegs(false);
-        if (Input.GetKeyDown(KeyCode.L)) {
-            f_InitializeLegs();
-            movementVariant = "variant1";
-        }
         if(body.gameObject.GetComponent<Controller>().pause) return;
         if (Input.GetKeyDown(KeyCode.T)) _trail.enabled = !_trail.enabled;
 
         if(!movementVariant.Equals("stop"))f_RestingPosition();
-    }
-
-    void FixedUpdate() {
-        if(body.gameObject.GetComponent<Controller>().pause) return;
+        
         switch(movementVariant){
-            case "variant1": f_MovingLegsVariant1(); break;
-            case "variant2": f_MovingLegsVariant2(); break;
-            case "variant3": f_MovingLegsVariant3(); break;
-            case "variant4": f_MovingLegsVariant4(); break;
+            case "variant1": f_MovingLegsVariant1(); timeToTakeStep_ms = _stepTimeVar1; break;
+            case "variant2": f_MovingLegsVariant2(); timeToTakeStep_ms = _stepTimeVar2; break;
+            case "variant3": f_MovingLegsVariant3(); timeToTakeStep_ms = _stepTimeVar3; break;
+            case "variant4": f_MovingLegsVariant4(); timeToTakeStep_ms = _stepTimeVar4; break;
             default: break;
         }
-        
     }
     public void f_reInitializeLegs(){
         f_InitializeLegs();
@@ -117,23 +117,27 @@ public class ProceduralAnimation : MonoBehaviour
             GameObject.Destroy(old_legs_points[i].gameObject);
         }
 
-        for (int i = 0; i < spawnLegsPoints.Length; i++)
-        {
-            print(spawnLegsPoints[i].gameObject.name);
-        }
-
         int j = 0;
         GameObject auxLeg;
         for (int i = 0; i < numberOfLegs; i++)
         {
             if(i > numberOfLegs/2 - 1){
-                auxLeg = Instantiate(legPrefab, spawnLegsPoints[j + 8/2]);
+                if(numberOfLegs <= 4){
+                    auxLeg = Instantiate(legPrefab, spawnLegsPoints[j + 8/2 + 1]);
+                }
+                else{
+                    auxLeg = Instantiate(legPrefab, spawnLegsPoints[j + 8/2]);
+                }
                 j++;
-                //auxLeg.transform.SetParent(spawnLegsPoints[j + 1 + 8/2], false);
             }
             else{
-                auxLeg = Instantiate(legPrefab, spawnLegsPoints[i]);
-                //auxLeg.transform.SetParent(spawnLegsPoints[i + 1], false);
+                if(numberOfLegs <= 4){
+                    auxLeg = Instantiate(legPrefab, spawnLegsPoints[i + 1]);
+                }
+                else{
+                    auxLeg = Instantiate(legPrefab, spawnLegsPoints[i]);
+                }
+                
             }
         }
         Invoke("f_reInitializeLegs", 0.2f);
@@ -147,16 +151,26 @@ public class ProceduralAnimation : MonoBehaviour
         ikLegs = new Transform[nLegs];
         rays = new Transform[nLegs];
         int x = 0;
-        print(nLegs);
         for (int i = 0; i < nLegs; i++)
         {
             ikLegs[i] = iks[i].transform;
             if(i > nLegs/2 - 1){
-                rays[i] = raysInTake[x + 1 + 8/2];
+                if(nLegs <= 4){
+                    rays[i] = raysInTake[x + 2 + 8/2];
+                }
+                else{
+                    rays[i] = raysInTake[x + 1 + 8/2];
+                }
                 x++;
             }
             else{
-                rays[i] = raysInTake[i + 1]; // The zero position belongs to the perent, so we must omit it
+                if(nLegs <= 4){
+                    rays[i] = raysInTake[i + 2]; // The zero position belongs to the perent, so we must omit it
+                }
+                else{
+                    rays[i] = raysInTake[i + 1]; // The zero position belongs to the perent, so we must omit it
+                }
+                
             }
             
         }
@@ -271,15 +285,15 @@ public class ProceduralAnimation : MonoBehaviour
 
     private IEnumerator bodyProceduraltransform(){
         while (true){
-            if(!movementVariant.Equals("stop")){ 
+            if(!movementVariant.Equals("stop")){
 
                 Vector3 avgIkPositon = Vector3.zero;
-                Vector3 bodyVecUp = Vector3.zero;
+                bodyVecUp = Vector3.zero;
 
                 for (int i = 0; i < nLegs; i++)
                 {
                     avgIkPositon += ikLegs[i].position;
-                    bodyVecUp += legs[i].lastPositionNormal + legs[i].rayHitNormal;
+                    bodyVecUp += legs[i].rayHitNormal;
                 }
 
                 RaycastHit hit;
@@ -291,11 +305,11 @@ public class ProceduralAnimation : MonoBehaviour
                 avgIkPositon = avgIkPositon / nLegs;
                 bodyVecUp.Normalize();
 
-                Vector3 bodyPos = avgIkPositon + bodyVecUp * bodyHeightBase;
-                body.transform.position = Vector3.Lerp(body.transform.position, new Vector3(body.transform.position.x,bodyPos.y,body.transform.position.z), AdjustRatioPerTick);
+                bodyPos = avgIkPositon + bodyVecUp * bodyHeightBase;
+                body.transform.position = Vector3.Lerp(body.transform.position, bodyPos, AdjustRatioPerTick);
 
-                Vector3 bodyRight = Vector3.Cross(bodyVecUp, body.transform.forward);
-                Vector3 bodyForward = Vector3.Cross(bodyRight, bodyVecUp);
+                bodyRight = Vector3.Cross(bodyVecUp, body.transform.forward);
+                bodyForward = Vector3.Cross(bodyRight, bodyVecUp);
 
                 Quaternion bodyRotation = Quaternion.LookRotation(bodyForward, bodyVecUp);
                 body.transform.rotation = Quaternion.Slerp(body.transform.rotation, bodyRotation, AdjustRatioPerTick);
@@ -379,28 +393,43 @@ public class ProceduralAnimation : MonoBehaviour
         {
             RaycastHit hit;
             if (Physics.Raycast(rays[firstSetLegs[i]].position, rays[firstSetLegs[i]].TransformDirection(-Vector3.forward), out hit, Mathf.Infinity, groundLayer)){
-                // Debug.Log("Ground hitted for Raycast " + i);
-                float distance = Vector3.Distance(hit.point, ikLegs[firstSetLegs[i]].transform.position);
+                legs[firstSetLegs[i]].distanceFromRest = Vector3.Distance(hit.point, ikLegs[firstSetLegs[i]].transform.position);
                 legs[firstSetLegs[i]].rayHitPosition = hit.point;
-                if(distance > stepDistance) {
+                legs[firstSetLegs[i]].rayHitNormal = hit.normal;
+            }
+            if (Physics.Raycast(rays[secondSetLegs[i]].position, rays[secondSetLegs[i]].TransformDirection(-Vector3.forward), out hit, Mathf.Infinity, groundLayer)){
+                legs[secondSetLegs[i]].distanceFromRest = Vector3.Distance(hit.point, ikLegs[secondSetLegs[i]].transform.position);
+                legs[secondSetLegs[i]].rayHitPosition = hit.point;
+                legs[secondSetLegs[i]].rayHitNormal = hit.normal;
+            }
+
+            if (legs[firstSetLegs[i]].distanceFromRest > legs[secondSetLegs[i]].distanceFromRest){
+                if(legs[firstSetLegs[i]].distanceFromRest > stepDistance) {
                     legs[firstSetLegs[i]].targetPosition = hit.point;
                     movingIndex = firstSetLegs[i];
                 }
             }
-        }
-        for (int i = 0; i < nLegs/2; i++)
-        {
-            RaycastHit hit;
-            if (Physics.Raycast(rays[secondSetLegs[i]].position, rays[secondSetLegs[i]].TransformDirection(-Vector3.forward), out hit, Mathf.Infinity, groundLayer)){
-                // Debug.Log("Ground hitted for Raycast " + i);
-                float distance = Vector3.Distance(hit.point, ikLegs[secondSetLegs[i]].transform.position);
-                legs[secondSetLegs[i]].rayHitPosition = hit.point;
-                if(distance > stepDistance) {
+            else{
+                if(legs[secondSetLegs[i]].distanceFromRest > stepDistance) {
                     legs[secondSetLegs[i]].targetPosition = hit.point;
                     movingIndex = secondSetLegs[i];
                 }
             }
         }
+        // for (int i = 0; i < nLegs/2; i++)
+        // {
+        //     RaycastHit hit;
+        //     if (Physics.Raycast(rays[secondSetLegs[i]].position, rays[secondSetLegs[i]].TransformDirection(-Vector3.forward), out hit, Mathf.Infinity, groundLayer)){
+        //         // Debug.Log("Ground hitted for Raycast " + i);
+        //         float distance = Vector3.Distance(hit.point, ikLegs[secondSetLegs[i]].transform.position);
+        //         legs[secondSetLegs[i]].rayHitPosition = hit.point;
+        //         legs[secondSetLegs[i]].rayHitNormal = hit.normal;
+        //         if(distance > stepDistance) {
+        //             legs[secondSetLegs[i]].targetPosition = hit.point;
+        //             movingIndex = secondSetLegs[i];
+        //         }
+        //     }
+        // }
         if(movingIndex != -1 && !legs[movingIndex].isMoving){
             int idxAnalogLeg = movingIndex - nLegs/2 < 0 ? nLegs - Mathf.Abs(movingIndex - nLegs/2) : movingIndex - nLegs/2;
             if(!legs[idxAnalogLeg].isMoving) {
@@ -419,13 +448,20 @@ public class ProceduralAnimation : MonoBehaviour
             RaycastHit hit;
             if (Physics.Raycast(rays[i].position, rays[i].TransformDirection(-Vector3.forward), out hit, Mathf.Infinity, groundLayer)){
                 // Debug.Log("Ground hitted for Raycast " + i);
-                float distance = Vector3.Distance(hit.point, ikLegs[i].transform.position);
+                legs[i].distanceFromRest = Vector3.Distance(hit.point, ikLegs[i].transform.position);
                 legs[i].rayHitPosition = hit.point;
-                if(distance > stepDistance) {
-                    legs[i].targetPosition = hit.point;
-                    movingIndex = i;
-                }
+                legs[i].rayHitNormal = hit.normal;
+
+                if(legs[i].distanceFromRest > stepDistance) legs[i].targetPosition = hit.point;
             }
+        }
+        int maxIdxDistance = 0;
+        for (int i = 1; i < nLegs; i++)
+        {
+            if(legs[maxIdxDistance].distanceFromRest < legs[i].distanceFromRest) maxIdxDistance = i;
+        }
+        if(legs[maxIdxDistance].distanceFromRest > stepDistance) {
+                movingIndex = maxIdxDistance;
         }
         if(movingIndex != -1 && !legs[movingIndex].isMoving){
             bool performStep = true;
@@ -456,6 +492,7 @@ public class ProceduralAnimation : MonoBehaviour
                 // Debug.Log("Ground hitted for Raycast " + i);
                 float distance = Vector3.Distance(hit.point, ikLegs[i].transform.position);
                 legs[i].rayHitPosition = hit.point;
+                legs[i].rayHitNormal = hit.normal;
                 if(distance > stepDistance) {
                     legs[i].targetPosition = hit.point;
                     movingIndex = i;
@@ -467,16 +504,15 @@ public class ProceduralAnimation : MonoBehaviour
         }
     }
 
-    private void OnDrawGizmosSelected()
-    {
-        for (int i = 0; i < nLegs; ++i)
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawWireSphere(ikLegs[i].position, 0.05f);
-            Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(transform.TransformPoint(legs[i].lastPosition), stepDistance);
 
-        }
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(bodyPos, bodyPos + bodyRight*10);
+        Gizmos.color = Color.green;
+        Gizmos.DrawLine(bodyPos, bodyPos + bodyVecUp*10);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(bodyPos, bodyPos + bodyForward*10);
     }
 
 /*

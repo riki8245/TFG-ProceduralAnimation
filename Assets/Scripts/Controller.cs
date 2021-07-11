@@ -8,7 +8,7 @@ public class Controller : MonoBehaviour
 {
     //Public variables
     public GameObject canvas;
-    public float _speed = 1f;
+    public float _speed = 20f;
     public float mouseSensitivity = 150f;
     [HideInInspector] public bool pause = false;
 
@@ -116,8 +116,9 @@ public class Controller : MonoBehaviour
 
         float hozMovement = axisHorizontal * _speed * Time.fixedDeltaTime;
         transform.Translate(hozMovement, 0, 0);
+        
 
-        // RigibodyMovement
+        // // RigibodyMovement
         // if(_rigibody.velocity.magnitude < _speed){
         //     if(axisVertical != 0){
         //         Vector3 forwardMovement = transform.forward * axisVertical * Time.fixedDeltaTime * 1500f;
