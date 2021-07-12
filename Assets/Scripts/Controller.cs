@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 //[RequireComponent(typeof(Rigidbody))]
@@ -11,6 +12,7 @@ public class Controller : MonoBehaviour
     public float _speed = 20f;
     public float mouseSensitivity = 150f;
     [HideInInspector] public bool pause = false;
+    [HideInInspector] public int _nOfCoins;
 
    //Private Variables
     [Header("UI Editor Stuff")]
@@ -31,6 +33,8 @@ public class Controller : MonoBehaviour
     [SerializeField] private Transform l_heightFrame;
     [SerializeField] private Text trailText;
     [SerializeField] private Text nLegsText;
+    [SerializeField] private Text nOfCoinsText;
+    [SerializeField] private GameObject finishText;
  
     private string editingCurve;
     private GameObject view_speedCurveUI;
@@ -56,6 +60,7 @@ public class Controller : MonoBehaviour
 
     void Start()
     {
+        _nOfCoins = 0;
         mySpeedKeyframes = new Keyframe[0];
         myHeightKeyframes = new Keyframe[0];
         editingIndex = -1;
@@ -73,6 +78,10 @@ public class Controller : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.P)) {
             f_OpenCloseMenu();
+        }
+
+        if (Input.GetKeyDown(KeyCode.R)) {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
         }
 
         if(pause && editingCurve != null) {
@@ -149,7 +158,6 @@ public class Controller : MonoBehaviour
         trailText.text = proceduralAnimation._trail.enabled ? "On" : "Off";
     }
     public void f_selectWalkingCycle(string cycle) {
-        print("entro a elegir ciclo");
         stopEditing();
 
         if(cycle.Equals("Own")) {
@@ -162,7 +170,6 @@ public class Controller : MonoBehaviour
     }
 
     public void f_EditMode(string curve) {
-        print("entro a editar");
         editingIndex = -1;
         ShowCycle(actualSpeedCurve, actualHeightCurve);
         if(editingCurve != null && editingCurve.Equals(curve)){ // Vuelves a Clickar
@@ -549,5 +556,17 @@ public class Controller : MonoBehaviour
         {
             GameObject.Destroy(destroyHeightPoints[i].gameObject);
         }
+    }
+
+    public void f_GetCoin(){
+        _nOfCoins++;
+        nOfCoinsText.text = _nOfCoins + "/5";
+        if(_nOfCoins == 5){
+            finishText.SetActive(true);
+        }
+    }
+
+    public void f_CloseGame(){
+        Application.Quit();
     }
 }
