@@ -507,12 +507,20 @@ public class ProceduralAnimation : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawLine(bodyPos, bodyPos + bodyRight*10);
-        Gizmos.color = Color.green;
-        Gizmos.DrawLine(bodyPos, bodyPos + bodyVecUp*10);
-        Gizmos.color = Color.blue;
-        Gizmos.DrawLine(bodyPos, bodyPos + bodyForward*10);
+        // Gizmos.color = Color.red;
+        // Gizmos.DrawLine(bodyPos, bodyPos + bodyRight*10);
+        // Gizmos.color = Color.green;
+        // Gizmos.DrawLine(bodyPos, bodyPos + bodyVecUp*10);
+        // Gizmos.color = Color.blue;
+        // Gizmos.DrawLine(bodyPos, bodyPos + bodyForward*10);
+        // Gizmos.color = Color.red;
+        // if(rays[0] != null && legs[0] != null){
+        //     Gizmos.DrawLine(rays[0].position, legs[0].rayHitPosition);
+        //     Gizmos.DrawSphere(legs[0].rayHitPosition, 1.8f);
+        //     Gizmos.color = Color.green;
+        //     Gizmos.DrawSphere(legs[0].lastPosition, 1.8f);
+
+        // }
     }
 
 /*
