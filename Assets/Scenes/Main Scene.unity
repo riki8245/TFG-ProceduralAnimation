@@ -2051,7 +2051,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 630731368}
-  m_LocalRotation: {x: 0.3021434, y: 0.067558706, z: -0.02147267, w: 0.95062304}
+  m_LocalRotation: {x: 0.3021434, y: 0.0675587, z: -0.021472674, w: 0.95062304}
   m_LocalPosition: {x: -28.2, y: 60.9, z: -70.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -3504,7 +3504,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.3021434, y: 0.067558706, z: -0.02147267, w: 0.95062304}
+  m_LocalRotation: {x: 0.3021434, y: 0.0675587, z: -0.021472674, w: 0.95062304}
   m_LocalPosition: {x: -28.2, y: 60.9, z: -70.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
@@ -4587,7 +4587,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   canvas: {fileID: 479392737}
   _speed: 60
-  mouseSensitivity: 100
+  mouseSensitivity: 30
   pause: 0
   _nOfCoins: 0
   speedEditor: {fileID: 378327190}
