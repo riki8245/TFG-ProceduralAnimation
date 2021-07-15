@@ -97,7 +97,7 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 0}
+  m_LightingDataAsset: {fileID: 112000000, guid: d3db95d8c5df51f4bb26b584305b6360, type: 2}
   m_LightingSettings: {fileID: 0}
 --- !u!196 &4
 NavMeshSettings:
@@ -4587,7 +4587,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   canvas: {fileID: 479392737}
   _speed: 60
-  mouseSensitivity: 100
+  mouseSensitivity: 30
   pause: 0
   _nOfCoins: 0
   speedEditor: {fileID: 378327190}
@@ -8888,6 +8888,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8652405003557912681}
+  - component: {fileID: 2415774780792738893}
   m_Layer: 0
   m_Name: hip
   m_TagString: Untagged
@@ -8895,6 +8896,25 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!95 &2415774780792738893
+Animator:
+  serializedVersion: 3
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2415774780792738892}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 4fedc4d59268ba541b7f4efaf24da3d5, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorControllerStateOnDisable: 0
 --- !u!1 &2522584886941120154
 GameObject:
   m_ObjectHideFlags: 0
