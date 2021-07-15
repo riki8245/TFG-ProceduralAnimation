@@ -102,7 +102,7 @@ public class Controller : MonoBehaviour
         pause = !pause;
         canvas.SetActive(pause);
         if(pause){
-            proceduralAnimation.f_pauseMovement();
+            //proceduralAnimation.f_pauseMovement();
             wasEdited = false;
             ShowCycle(proceduralAnimation.speedCurve, proceduralAnimation.heightCurve);
 
@@ -111,7 +111,7 @@ public class Controller : MonoBehaviour
             Cursor.lockState = CursorLockMode.None;
         }
         else{
-            proceduralAnimation.f_resumeState();
+            //proceduralAnimation.f_resumeState();
             Cursor.lockState = CursorLockMode.Locked;
         }
     }

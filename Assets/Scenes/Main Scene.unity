@@ -4587,7 +4587,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   canvas: {fileID: 479392737}
   _speed: 60
-  mouseSensitivity: 30
+  mouseSensitivity: 90
   pause: 0
   _nOfCoins: 0
   speedEditor: {fileID: 378327190}
