@@ -53,6 +53,7 @@ public class ProceduralAnimation : MonoBehaviour
     private int movingIndex;
     private int[] firstSetLegs, secondSetLegs;
     private int stepIndex = 0;
+    private string aux_variant = "";
 
     
     private Vector3 bodyPos;
@@ -63,19 +64,23 @@ public class ProceduralAnimation : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {   
-        movementVariant = "variant1";
+        movementVariant = "stop";
         f_SetLegs(8);
-        ch_controller = transform.GetComponent<Animator>();
+        ch_controller = transform.GetComponentInChildren<Animator>();
         StartCoroutine(bodyProceduraltransform());
     }
 
     // Update is called once per frame
     void Update()
     {
-        if(body.gameObject.GetComponent<Controller>().pause) return;
+        if(body.gameObject.GetComponent<Controller>().pause){
+            ch_controller.SetBool("Idle", false);
+            return;
+        }
+        ch_controller.SetBool("Idle", true);
         if (Input.GetKeyDown(KeyCode.T)) _trail.enabled = !_trail.enabled;
 
-        if(!movementVariant.Equals("stop"))f_RestingPosition();
+        if(!movementVariant.Equals("stop")) f_RestingPosition();
         
         switch(movementVariant){
             case "variant1": f_MovingLegsVariant1(); timeToTakeStep_ms = _stepTimeVar1; break;
@@ -87,7 +92,6 @@ public class ProceduralAnimation : MonoBehaviour
     }
     public void f_reInitializeLegs(){
         f_InitializeLegs();
-        movementVariant = "variant1";
     }
 
     public int f_setNumberOfLegs(bool add){
@@ -104,10 +108,16 @@ public class ProceduralAnimation : MonoBehaviour
         f_SetLegs(numberOfLegs);
         return numberOfLegs;
     }
+    public void f_pauseMovement(){
+        aux_variant = movementVariant;
+        movementVariant = "stop";
+    }
+
+    public void f_resumeState(){
+        movementVariant = aux_variant;
+    }
 
     private void f_SetLegs(int numberOfLegs){
-        string aux = movementVariant;
-        movementVariant = "stop";
         
         RigBuilder[] old_legs_points = GetComponentsInChildren<RigBuilder>();
         GameObject[] old_legs = new GameObject[nLegs];
@@ -208,6 +218,8 @@ public class ProceduralAnimation : MonoBehaviour
                 } 
             }
         }
+
+        movementVariant = aux_variant != "" ? "stop" : "variant1";
     }
 
     public void f_ChoosePreset(string preset) {
@@ -507,20 +519,20 @@ public class ProceduralAnimation : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        // Gizmos.color = Color.red;
-        // Gizmos.DrawLine(bodyPos, bodyPos + bodyRight*10);
-        // Gizmos.color = Color.green;
-        // Gizmos.DrawLine(bodyPos, bodyPos + bodyVecUp*10);
-        // Gizmos.color = Color.blue;
-        // Gizmos.DrawLine(bodyPos, bodyPos + bodyForward*10);
-        // Gizmos.color = Color.red;
-        // if(rays[0] != null && legs[0] != null){
-        //     Gizmos.DrawLine(rays[0].position, legs[0].rayHitPosition);
-        //     Gizmos.DrawSphere(legs[0].rayHitPosition, 1.8f);
-        //     Gizmos.color = Color.green;
-        //     Gizmos.DrawSphere(legs[0].lastPosition, 1.8f);
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine(bodyPos, bodyPos + bodyRight*15);
+        Gizmos.color = Color.green;
+        Gizmos.DrawLine(bodyPos, bodyPos + bodyVecUp*15);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine(bodyPos, bodyPos + bodyForward*15);
+        Gizmos.color = Color.red;
+        if(rays != null && legs != null && rays[0] != null && legs[0] != null){
+            Gizmos.DrawLine(rays[0].position, legs[0].rayHitPosition);
+            Gizmos.DrawSphere(legs[0].rayHitPosition, 1.8f);
+            Gizmos.color = Color.green;
+            Gizmos.DrawSphere(legs[0].lastPosition, 1.8f);
 
-        // }
+        }
     }
 
 /*
