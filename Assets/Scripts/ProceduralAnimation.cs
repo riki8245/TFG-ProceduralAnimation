@@ -65,6 +65,7 @@ public class ProceduralAnimation : MonoBehaviour
     void Start()
     {   
         movementVariant = "stop";
+        aux_variant = "variant1";
         f_SetLegs(8);
         ch_controller = transform.GetComponentInChildren<Animator>();
         StartCoroutine(bodyProceduraltransform());
@@ -92,6 +93,7 @@ public class ProceduralAnimation : MonoBehaviour
     }
     public void f_reInitializeLegs(){
         f_InitializeLegs();
+        movementVariant = "variant1";
     }
 
     public int f_setNumberOfLegs(bool add){
@@ -219,7 +221,7 @@ public class ProceduralAnimation : MonoBehaviour
             }
         }
 
-        movementVariant = aux_variant != "" ? "stop" : "variant1";
+        //movementVariant = !aux_variant.Equals("") ? "stop" : "variant1";
     }
 
     public void f_ChoosePreset(string preset) {
@@ -297,7 +299,7 @@ public class ProceduralAnimation : MonoBehaviour
 
     private IEnumerator bodyProceduraltransform(){
         while (true){
-            if(!movementVariant.Equals("stop")){
+            if(!movementVariant.Equals("stop") && !body.gameObject.GetComponent<Controller>().pause){
 
                 Vector3 avgIkPositon = Vector3.zero;
                 bodyVecUp = Vector3.zero;
